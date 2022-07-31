@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Add custom icons with Markers</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
+</head>
+<body>
+<style>
+    .marker {
+        display: block;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        padding: 0;
+    }
+</style>
+
+<div id="map"></div>
+
+<script>
+    var curLatitude = 0;
+    var curLongitude = 0;
+
+    getLocation();
+    
+    function getLocation() {
+        navigator.geolocation.getCurrentPosition(getSucessLocation);
+        
+    }
+            
+    function getSucessLocation(position) {
+        //if get location was sucessful, save location to variables
+        curLatitude = position.coords.latitude;
+        curLongitude = position.coords.longitude;
+        // Ease with default options to null island for 5 seconds.
+        //setInterval(function(){easeToLocation(curLongitude,curLatitude);},1000);
+        easeToLocation(curLongitude,curLatitude);
+        console.log(curLatitude);
+        console.log(curLongitude);
+    }
+
+    function easeToLocation(longitudePos,latitudePos){
+        map.flyTo({
+            center: [longitudePos, latitudePos],
+            zoom: 15,
+            speed: 10,
+            curve: 1,
+            easing(t) {
+            return t;
+            }
+        });
+    }
+    mapboxgl.accessToken = 'pk.eyJ1IjoiaGhqc3luZHJvbWUiLCJhIjoiY2t6Z2M1M3VtMHpzYTJvb2N4bzU0eHFjdyJ9.8gbvpUvUCrdQoOpiD2vNrQ';
+    
+    var taxijson = []
+
+    function taxi(longitudePos, latitudePos) {
+        this.type = 'Feature'
+        this.properties = {
+            'message': 'Hail this taxi',
+            'iconSize': [50,50] 
+        },
+        this.geometry = {
+            'type':'Point',
+            'coordinates':[longitudePos,latitudePos]
+        }
+    }
+
+    
+    loadTaxiAPI(); 
+    function loadTaxiAPI()
+    {
+        var apiUrl = "https://cors-anywhere.herokuapp.com/http://datamall2.mytransport.sg/ltaodataservice/Taxi-Availability"
+            
+        let settings = {
+            "async": true,
+                    "crossDomain": true,
+                    "url": apiUrl,
+                    "method": "GET",
+                    "headers": {
+                        "AccountKey": "EI/eL+UHTqGJT36WKm+2Iw==",
+                    }
+                }
+        $.ajax(settings).done(function (response) {
+            console.log(response);
+            taxijson = [];
+            console.log('new query...');
+            for(let i = 0; i < response.value.length; i++)
+            {
+                let tempTaxi = new taxi(response.value[i].Longitude,response.value[i].Latitude)
+                taxijson.push(tempTaxi);
+            }
+            geojson.features = taxijson;
+
+            // Add markers to the map.
+            for (let marker of geojson.features) {
+                // Create a DOM element for each marker.
+                let el = document.createElement('div');
+                let width = marker.properties.iconSize[0];
+                let height = marker.properties.iconSize[1];
+                el.className = 'marker';
+                el.style.backgroundImage = `url('taxi.png')`;
+                el.style.width = `${width}px`;
+                el.style.height = `${height}px`;
+                el.style.backgroundSize = '100%';
+                
+                el.addEventListener('click', () => {
+                    window.alert(marker.properties.message);
+                });
+
+                // Add markers to the map.
+                new mapboxgl.Marker(el)
+                    .setLngLat(marker.geometry.coordinates)
+                    .addTo(map);
+            }
+        });
+
+                
+    }
+
+
+
+    
+    var geojson = {
+        'type': 'FeatureCollection',
+        'features': [
+            {
+                'type': 'Feature',
+                'properties': {
+                    'message': 'Foo',
+                    'iconSize': [20, 20]
+                },
+                'geometry': {
+                    'type': 'Point',
+                    'coordinates': [103.7400257,1.354948]
+                }
+            }
+        ]
+    };
+
+    var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        //center: [-65.017,-16.457]
+        center: [-616.2, 1.35],
+        //center: [103.7400257,1.354948],
+        //center: [curLongitude,curLatitude],
+        zoom: 7
+    });
+
+    
+</script>
+
+<a href="https://www.flaticon.com/free-icons/taxi" title="taxi icons">Taxi icons created by Freepik - Flaticon</a>
+</body>
+</html>
